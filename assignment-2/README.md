@@ -1,0 +1,2 @@
+# Adapting TD(0) Prediction to Delayed-Rewards
+The goal is to study a reinforcement learning setting where the rewards perceived by an agent might be occasionally delayed. A variant of TD(0) prediction method is tested which incorporates the notion of reward sharing - a fraction of the reward received at the end of the most recent interaction with the environment is distributed among the past interactions.
