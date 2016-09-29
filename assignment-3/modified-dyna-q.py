@@ -11,15 +11,15 @@ import matplotlib.pyplot as plt
 from pylab import savefig
 
 
-R = 0
-CHANGE_POINT = 2000
+R = -0.05
+CHANGE_POINT = 1500
 DYNA_Q = 'DYNA_Q'
 DYNA_Q_PLUS = 'DYNA_Q_PLUS'
 DYNA_Q_PLUS_VARIANT = 'DYNA_Q_PLUS_VARIANT'
 
 
 def save_plot(self):
-    savefig('error-plotter/cummulative-reward.png')
+    savefig('error-plotter/cumulative-reward.png')
     plt.close()
 
 
@@ -32,15 +32,17 @@ class Plotter:
                           DYNA_Q_PLUS: "DynaQ+",
                           DYNA_Q_PLUS_VARIANT: "DynaQ+ Variant"}
 
-    def plot_cummulative_reward(self, mode):
+    def plot_cumulative_reward(self, mode):
         plt.plot(self.arr, label=self.label_map[mode])
         plt.xlabel("Time Steps")
-        plt.ylabel("Cummulative Reward")
+        plt.ylabel("Cumulative Reward")
         plt.legend(loc='best', framealpha=0.5)
 
     def plot_steps_per_episode(self, mode):
         m = np.array(self.steps_per_episode).reshape(self.n_experiments, -1)
-        plt.plot(m.mean(axis=0)[1:], label=self.label_map[mode])
+        # plt.plot(m.mean(axis=0)[1:], label=self.label_map[mode])
+        plt.plot(np.mean(m, axis=0)[1:], label=self.label_map[mode])
+        # plt.plot(np.median(m, axis=0)[1:], label=self.label_map[mode])
         plt.xlabel("Episode")
         plt.ylabel("Steps per episode")
         plt.legend(loc='best', framealpha=0.5)
@@ -63,16 +65,11 @@ class Environment:
         return [(3, 0), [3, 8]]
 
     def next_state_and_reward(self, state, action):
-        # print("Curr state=", state)
-        # print("Action=", action)
         next_state = self.__make_transition(state, action)
         if next_state == state:
             reward = R
         else:
             reward = self.__get_reward(next_state)
-        # print("Next state", next_state)
-        # print("True reward=", reward)
-        # print("----")
         return (next_state, reward)
 
     def __make_transition(self, state, action):
@@ -156,7 +153,7 @@ class DynaQ:
         # If we are using DynaQ+ variant, then the action selection is based
         # on Q values plus exploration rewards. Note that in this algorithm,
         # exploration rewards are not added to Q values during planning
-        if self.mode == DYNA_Q_PLUS_VARIANT:
+        if self.mode == DYNA_Q_PLUS_VARIANT and episode != 0:
             q_values = [val + self.__exploration_reward(state, a, timestep)
                         for a, val in self.Q[state].items()]
         else:
@@ -198,7 +195,7 @@ class DynaQ:
             return self.model[state][action]['reward']
 
     def plan_and_learn(self, change_grid=False):
-        cummulative_reward = 0
+        cumulative_reward = 0
         x = 0
         self.plotter.steps_per_episode.append([0] * self.n_episodes)
         for episode in range(0, self.n_episodes):
@@ -215,8 +212,9 @@ class DynaQ:
 
                 a = self.__next_action(s, episode, timestep)
                 s_dash, r = self.e.next_state_and_reward(s, a)
-                cummulative_reward += r
-                self.plotter.arr.append(cummulative_reward)
+                cumulative_reward += r
+                self.plotter.arr.append(cumulative_reward)
+
                 # Update last tried timestep for this (s,a) transition
                 self.last_tried_on[s][a] = timestep
 
@@ -251,11 +249,11 @@ def dyna_q(start, goal, e, n_experiments, change_grid):
     plotter = Plotter(n_experiments=n_experiments)
     for _ in range(0, n_experiments):
         rl = DynaQ(e=e, mode=mode, plotter=plotter, start=start, goal=goal,
-                   epsilon=0.1, n_episodes=100, n_plan=50, gamma=0.95,
+                   epsilon=0.1, n_episodes=150, n_plan=50, gamma=0.95,
                    alpha=0.1)
         rl.plan_and_learn(change_grid)
-        plotter.plot_cummulative_reward(mode)
-    # plotter.plot_steps_per_episode(mode)
+        plotter.plot_cumulative_reward(mode)
+        # plotter.plot_steps_per_episode(mode)
     plotter.plot_change_point()
 
 
@@ -264,11 +262,11 @@ def dyna_q_plus(start, goal, e, n_experiments, change_grid):
     plotter = Plotter(n_experiments=n_experiments)
     for _ in range(0, n_experiments):
         rl = DynaQ(e=e, mode=mode, plotter=plotter, start=start, goal=goal,
-                   epsilon=0.1, n_episodes=100, n_plan=50, gamma=0.95,
-                   alpha=0.1, kappa=0.007)
+                   epsilon=0.1, n_episodes=150, n_plan=50, gamma=0.95,
+                   alpha=0.1, kappa=0.001)
         rl.plan_and_learn(change_grid)
-        plotter.plot_cummulative_reward(mode)
-    # plotter.plot_steps_per_episode(mode)
+        plotter.plot_cumulative_reward(mode)
+        # plotter.plot_steps_per_episode(mode)
 
 
 def dyna_q_plus_varriant(start, goal, e, n_experiments, change_grid):
@@ -276,11 +274,11 @@ def dyna_q_plus_varriant(start, goal, e, n_experiments, change_grid):
     plotter = Plotter(n_experiments=n_experiments)
     for _ in range(0, n_experiments):
         rl = DynaQ(e=e, mode=mode, plotter=plotter, start=start, goal=goal,
-                   epsilon=0.1, n_episodes=100, n_plan=50, gamma=0.95,
-                   alpha=0.1, kappa=0.007)
+                   epsilon=0.1, n_episodes=150, n_plan=50, gamma=0.95,
+                   alpha=0.1, kappa=0.001)
         rl.plan_and_learn(change_grid)
-        plotter.plot_cummulative_reward(mode)
-    # plotter.plot_steps_per_episode(mode)
+        plotter.plot_cumulative_reward(mode)
+        # plotter.plot_steps_per_episode(mode)
 
 
 def main():
@@ -292,7 +290,7 @@ def main():
         [R, R, R, R, R, R, R, R, R],
         [R, R, R, R, R, R, R, R, R]]
 
-    start = (5, 5)
+    start = (5, 7)
     goal = (0, 8)
     n_experiments = 1
     change_grid = True
@@ -308,6 +306,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-# Use kappa = 0.0001 for Nonr,R flip case
-# Use kappa = 0.007 for R,R case
