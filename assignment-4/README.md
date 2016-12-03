@@ -1,0 +1,3 @@
+# Assessment of Sample-Efficiency of LSTD
+TD(0) with linear function approximation converges to a fixpoint, for appropriately decreasing step-size, which can be computed can be directly estimated without iterative computation that is performed in TD(0). Least-Squares TD (LSTD)
+leverages this idea to perform value estimation, and is claimed to be more sample-efficient than TD(0). The motivation behind this study is to assess the sample-efficiency of LSTD and compare it with TD(0).
